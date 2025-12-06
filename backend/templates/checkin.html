@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điểm danh QR</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        .btn { background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 18px; margin-top: 20px; }
+        .hidden { display: none; }
+        #status { margin-top: 20px; font-weight: bold; color: #333; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h2>Đang xác thực vị trí...</h2>
+    <p>Vui lòng chọn "Cho phép" (Allow) khi trình duyệt hỏi vị trí.</p>
+    
+    <div id="status">Đang lấy GPS...</div>
+
+    <button id="btnLogin" class="btn hidden" onclick="window.location.href='/docs'">Chưa đăng nhập (Vào Swagger để Login)</button>
+
+    <script>
+        // Lấy tham số từ URL (do mã QR truyền vào)
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = "{{ session_id }}"; // Server truyền xuống
+        const qrSecret = "{{ qr_secret }}";
+
+        // Hàm lấy Token (Giả sử SV đã Login qua Swagger hoặc trang Login trước đó)
+        // Lưu ý: Thực tế bạn cần trang Login riêng lưu token vào localStorage.
+        // Ở demo này, ta sẽ nhắc user login nếu chưa có token.
+        
+        // --- LOGIC CHÍNH ---
+        function startCheckin() {
+            if (!navigator.geolocation) {
+                document.getElementById('status').innerText = "Trình duyệt không hỗ trợ GPS.";
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(sendPosition, showError);
+        }
+
+        function sendPosition(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            document.getElementById('status').innerText = `Đã lấy được tọa độ: ${lat.toFixed(4)}, ${lon.toFixed(4)}. Đang gửi...`;
+
+            // Lấy token từ LocalStorage (Bạn cần code phần Login lưu vào đây)
+            // Để test nhanh: Bạn cứ chạy thử, nó sẽ báo lỗi 401 Unauthorized -> Biết là code chạy rồi.
+            const token = localStorage.getItem("access_token"); 
+
+            fetch(`/api/process-checkin?session_id=${sessionId}&qr_secret=${qrSecret}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token 
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lon
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.detail) {
+                     document.getElementById('status').className = "error";
+                     document.getElementById('status').innerText = "Lỗi: " + data.detail;
+                } else {
+                     document.getElementById('status').className = "success";
+                     document.getElementById('status').innerText = "✅ " + data.message;
+                }
+            })
+            .catch(error => {
+                document.getElementById('status').innerText = "Lỗi kết nối Server!";
+            });
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    document.getElementById('status').innerHTML = "❌ Bạn đã chặn quyền Vị trí.<br>Hãy vào cài đặt trình duyệt bật lại.";
+                    break;
+                default:
+                    document.getElementById('status').innerText = "❌ Lỗi không xác định khi lấy GPS.";
+            }
+        }
+
+        // Tự động chạy khi mở trang
+        startCheckin();
+    </script>
+</body>
+</html>

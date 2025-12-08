@@ -1,0 +1,27 @@
+# --- Bảo mật (QUAN TRỌNG NHẤT) ---
+.env
+.env.local
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Môi trường ảo (Virtual Environment) ---
+# Thư mục này chứa thư viện tải về, rất nặng, không đẩy lên git
+venv/
+.venv/
+env/
+.env/
+
+# --- IDE (Cấu hình của Editor, không cần thiết cho người khác) ---
+.vscode/
+.idea/
+
+# --- Database (Nếu bạn dùng SQLite file) ---
+*.db
+*.sqlite3
+
+# --- Mac OS (File rác hệ thống nếu dùng Mac) ---
+.DS_Store
